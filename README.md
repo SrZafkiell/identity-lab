@@ -1,46 +1,54 @@
 # identity-lab
 
-A self-hosted identity and access platform, built end to end as a reference: single
-sign-on for a few sample apps, automated user provisioning, enforced MFA, and a small
-tool that audits access policies for more permission than they need.
+A self-hosted identity and access platform, built from modules: a workstation CLI that
+manages AWS and SSH access, an identity core with single sign-on, MFA and provisioning,
+governance with just-in-time access, access reviews and audit, and the operations around
+it (signed delivery, security monitoring, a web portal).
 
-Everything runs on one local machine with Docker. No cloud account is needed to run it.
+Everything runs on one machine with Docker. Nothing is hosted in a cloud; the AWS and
+GitHub modules manage access to a sandbox account and a test organization.
 
-> Status: planning. The plan, the issues and the milestones live in this repository.
+> Status: planning. See [the plan](docs/PLAN.md); work is tracked in issues and
+> milestones.
 
-## Goals
+## Modules
 
-- **Single sign-on** with OpenID Connect and SAML 2.0 for at least two sample
-  applications (one modern web app, one legacy-style app).
-- **Identity provider** self-hosted (Keycloak is the working choice; the decision gets
-  an ADR).
-- **Provisioning**: users and groups created, changed and removed through SCIM 2.0, so
-  access follows the source of truth instead of manual edits.
-- **MFA** enforced (TOTP and WebAuthn), with step-up authentication for an admin-only
-  action.
-- **Role-based access** mapped from groups to application roles, and a joiner / mover /
-  leaver flow that can be demonstrated in a few minutes.
-- **Access audit tool**: reads the realm and application configuration and reports
-  over-privileged roles, unused accounts, stale sessions and risky client settings.
-- **Infrastructure as code**: the identity provider, realms, clients and roles are
-  declared in code (Terraform), never clicked into place.
+| Area | Module | What it does |
+|---|---|---|
+| Workstation | M01 AWS access manager | Profiles, saved SSO sessions, background refresh, console sign-in, credentials without plain-text files |
+| Workstation | M02 SSH certificate authority | SSO login gives short-lived SSH certificates; no static keys on servers |
+| Workstation | M03 Secrets broker | Secrets after SSO, dynamic database credentials, audited reads |
+| Identity core | M04 Identity provider | Hardened Keycloak configured entirely in Terraform |
+| Identity core | M05 SSO apps | OIDC (FastAPI) and SAML (Spring Boot) integrations done correctly |
+| Identity core | M06 MFA and step-up | TOTP, WebAuthn, stronger checks for risky actions |
+| Identity core | M07 Provisioning | SCIM joiner, mover and leaver flows to apps, AWS and GitHub |
+| Identity core | M12 AWS federation | Keycloak as the identity provider for AWS IAM Identity Center |
+| Governance | M08 Just-in-time access | Time-boxed elevated access with approvals and automatic removal |
+| Governance | M09 Access reviews | Review campaigns with revocation and audit evidence |
+| Governance | M10 idaudit | Finds risky identity configuration in Keycloak, AWS and GitHub |
+| Governance | M11 Policy as code | OPA policies for apps, JIT and CI checks |
+| Operations | M13 Security monitoring | Identity attack detections written and tested as code |
+| Operations | M14 Portal | Web UI for access, approvals, reviews and findings |
+
+Platform work: P0 foundation, P1 runtime, P2 secure delivery (signed images, pull-based
+deploys) and R1, the v1.0.0 release.
 
 ## Engineering standards
 
-- Work tracked as GitHub issues and milestones; every change goes through a pull request.
-- CI on every pull request: lint, unit and integration tests, secret scanning,
-  dependency and container image scanning, and static analysis.
-- CD to the local machine, only from `main`, with signed and scanned images.
-- Architecture Decision Records in `docs/adr/` for every decision that matters.
-- Threat model for the platform and the CI/CD path.
-- Measured results published in this README (test counts, login latency, time to
-  provision and deprovision a user).
-- A short walkthrough video once the first milestone ships.
+- Issues, milestones and a public project board; every change through a pull request.
+- CI security gates: secret scanning, CodeQL, dependency review, image and IaC scanning,
+  DAST, OpenSSF Scorecard.
+- Images signed with cosign, with SBOM and build provenance; the host deploys only what
+  it can verify.
+- ADRs for every decision that matters, a threat model and a
+  [risk register](docs/RISKS.md) kept current, runbooks for operations.
+- Measured results published here, each with the script or test that produced it.
 
-## Out of scope (for now)
+## Tech
 
-- Managed cloud identity services (AWS IAM Identity Center, Entra ID, Okta).
-- High availability of the identity provider across machines.
+Go, Java (Spring Boot), Python (FastAPI), TypeScript (React), Keycloak, PostgreSQL,
+Terraform, OPA, OpenBao, step-ca, Traefik, Grafana, Loki, Prometheus, GitHub Actions,
+Docker.
 
 ## License
 
